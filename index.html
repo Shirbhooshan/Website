@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Weather Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #fff 0%, #ffe0f0 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.2);
+            padding: 30px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #ff69b4;
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #4CAF50;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sensor-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.2);
+            padding: 30px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .sensor-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .sensor-label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sensor-value {
+            color: #ff69b4;
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .sensor-unit {
+            color: #999;
+            font-size: 20px;
+        }
+
+        .last-update {
+            color: #999;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .control-section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.2);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        #messageInput {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ffe0f0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        #messageInput:focus {
+            border-color: #ff69b4;
+            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.1);
+        }
+
+        #sendButton {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+        }
+
+        #sendButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4);
+        }
+
+        #sendButton:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .log-section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.2);
+            padding: 30px;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .clear-log {
+            background: none;
+            border: none;
+            color: #ff69b4;
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: underline;
+        }
+
+        #messageLog {
+            background: #f8f9fa;
+            border: 2px solid #ffe0f0;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 4px solid #ff69b4;
+            animation: slideIn 0.3s ease;
+        }
+
+        .log-time {
+            color: #999;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .log-text {
+            color: #333;
+            word-wrap: break-word;
+        }
+
+        .empty-log {
+            color: #999;
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            animation: slideInRight 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.error {
+            background: #f44336;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .sensor-value {
+                font-size: 36px;
+            }
+
+            .control-section, .log-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🌡 ESP32 Weather Dashboard</h1>
+            <p class="subtitle">
+                Real-time sensor monitoring
+                <span class="status-indicator" id="statusIndicator"></span>
+            </p>
+        </div>
+
+        <!-- Sensor Cards -->
+        <div class="grid">
+            <div class="sensor-card">
+                <div class="sensor-icon">🌡</div>
+                <div class="sensor-label">Temperature</div>
+                <div class="sensor-value" id="temperatureValue">--</div>
+                <div class="sensor-unit">°C</div>
+                <div class="last-update" id="tempUpdate">Waiting for data...</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-icon">💧</div>
+                <div class="sensor-label">Humidity</div>
+                <div class="sensor-value" id="humidityValue">--</div>
+                <div class="sensor-unit">%</div>
+                <div class="last-update" id="humUpdate">Waiting for data...</div>
+            </div>
+        </div>
+
+        <!-- Control Section -->
+        <div class="control-section">
+            <div class="section-title">📤 Send Message to ESP32</div>
+            <div class="input-group">
+                <label for="messageInput">Message</label>
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Type your message here..."
+                    maxlength="200"
+                >
+            </div>
+            <button id="sendButton">Send Message</button>
+        </div>
+
+        <!-- Message Log -->
+        <div class="log-section">
+            <div class="log-header">
+                <div class="section-title">📋 Message Log (Last 10)</div>
+                <button class="clear-log" id="clearLog">Clear</button>
+            </div>
+            <div id="messageLog">
+                <div class="empty-log">No messages sent yet</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const SEND_MESSAGE_URL = 'https://my-api-url.com/updateMessage';
+        const GET_SENSOR_DATA_URL = 'https://my-api-url.com/getSensorData';
+        const MAX_LOG_ITEMS = 10;
+        const UPDATE_INTERVAL = 3000; // Check for new data every 3 seconds
+
+        // Get DOM elements
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const messageLog = document.getElementById('messageLog');
+        const clearLogButton = document.getElementById('clearLog');
+        const temperatureValue = document.getElementById('temperatureValue');
+        const humidityValue = document.getElementById('humidityValue');
+        const tempUpdate = document.getElementById('tempUpdate');
+        const humUpdate = document.getElementById('humUpdate');
+        const statusIndicator = document.getElementById('statusIndicator');
+
+        // Load message history
+        let messageHistory = JSON.parse(localStorage.getItem('messageHistory')) || [];
+        
+        // Latest sensor data
+        let latestData = {
+            temperature: null,
+            humidity: null,
+            lastUpdate: null
+        };
+
+        // Initialize
+        init();
+
+        function init() {
+            displayMessageLog();
+            
+            // Event listeners
+            sendButton.addEventListener('click', sendMessage);
+            clearLogButton.addEventListener('click', clearLog);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            // Start fetching sensor data
+            fetchSensorData();
+            setInterval(fetchSensorData, UPDATE_INTERVAL);
+        }
+
+        // Fetch sensor data from server
+        async function fetchSensorData() {
+            try {
+                const response = await fetch(GET_SENSOR_DATA_URL);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Update sensor values
+                    if (data.temperature !== undefined) {
+                        temperatureValue.textContent = data.temperature.toFixed(1);
+                        latestData.temperature = data.temperature;
+                    }
+                    
+                    if (data.humidity !== undefined) {
+                        humidityValue.textContent = data.humidity.toFixed(1);
+                        latestData.humidity = data.humidity;
+                    }
+                    
+                    // Update timestamp
+                    const now = new Date().toLocaleTimeString();
+                    tempUpdate.textContent = Updated: ${now};
+                    humUpdate.textContent = Updated: ${now};
+                    latestData.lastUpdate = now;
+                    
+                    // Update status indicator
+                    statusIndicator.classList.add('connected');
+                } else {
+                    statusIndicator.classList.remove('connected');
+                }
+            } catch (error) {
+                console.error('Error fetching sensor data:', error);
+                statusIndicator.classList.remove('connected');
+                tempUpdate.textContent = 'Connection error';
+                humUpdate.textContent = 'Connection error';
+            }
+        }
+
+        // Send message to ESP32
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            
+            if (!message) {
+                showToast('Please enter a message', 'error');
+                return;
+            }
+
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending...';
+
+            try {
+                const response = await fetch(SEND_MESSAGE_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: message
+                    })
+                });
+
+                if (response.ok) {
+                    showToast('✓ Message sent successfully!');
+                    addToHistory(message);
+                    messageInput.value = '';
+                } else {
+                    throw new Error(Server error: ${response.status});
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('✗ Failed to send message', 'error');
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send Message';
+            }
+        }
+
+        // Add message to history
+        function addToHistory(message) {
+            const timestamp = new Date().toLocaleString();
+            
+            messageHistory.unshift({
+                text: message,
+                time: timestamp
+            });
+
+            if (messageHistory.length > MAX_LOG_ITEMS) {
+                messageHistory = messageHistory.slice(0, MAX_LOG_ITEMS);
+            }
+
+            localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
+            displayMessageLog();
+        }
+
+        // Display message log
+        function displayMessageLog() {
+            if (messageHistory.length === 0) {
+                messageLog.innerHTML = '<div class="empty-log">No messages sent yet</div>';
+                return;
+            }
+
+            messageLog.innerHTML = messageHistory.map(item => `
+                <div class="log-item">
+                    <div class="log-time">${item.time}</div>
+                    <div class="log-text">${escapeHtml(item.text)}</div>
+                </div>
+            `).join('');
+        }
+
+        // Clear log
+        function clearLog() {
+            if (confirm('Are you sure you want to clear the message log?')) {
+                messageHistory = [];
+                localStorage.removeItem('messageHistory');
+                displayMessageLog();
+                showToast('Log cleared');
+            }
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = toast ${type};
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
