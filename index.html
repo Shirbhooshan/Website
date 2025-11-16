@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP32 Weather Dashboard</title>
+    <title>Smart Glasses Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -13,28 +13,31 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #fff 0%, #ffe0f0 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
         .header {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
             padding: 30px;
             margin-bottom: 20px;
             text-align: center;
+            backdrop-filter: blur(10px);
         }
 
         h1 {
-            color: #ff69b4;
-            font-size: 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 36px;
             margin-bottom: 5px;
         }
 
@@ -70,12 +73,13 @@
         }
 
         .sensor-card {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
             padding: 30px;
             text-align: center;
             transition: transform 0.3s ease;
+            backdrop-filter: blur(10px);
         }
 
         .sensor-card:hover {
@@ -96,7 +100,9 @@
         }
 
         .sensor-value {
-            color: #ff69b4;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             font-size: 48px;
             font-weight: bold;
             margin-bottom: 5px;
@@ -114,11 +120,12 @@
         }
 
         .control-section {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
             padding: 30px;
             margin-bottom: 20px;
+            backdrop-filter: blur(10px);
         }
 
         .section-title {
@@ -143,7 +150,7 @@
         #messageInput {
             width: 100%;
             padding: 15px;
-            border: 2px solid #ffe0f0;
+            border: 2px solid #e9ecef;
             border-radius: 10px;
             font-size: 16px;
             transition: all 0.3s ease;
@@ -151,14 +158,14 @@
         }
 
         #messageInput:focus {
-            border-color: #ff69b4;
-            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.1);
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         #sendButton {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 10px;
@@ -166,12 +173,12 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
 
         #sendButton:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
 
         #sendButton:disabled {
@@ -181,10 +188,12 @@
         }
 
         .log-section {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
             padding: 30px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
         }
 
         .log-header {
@@ -197,45 +206,66 @@
         .clear-log {
             background: none;
             border: none;
-            color: #ff69b4;
+            color: #667eea;
             cursor: pointer;
             font-size: 12px;
             text-decoration: underline;
+            transition: color 0.3s ease;
         }
 
-        #messageLog {
+        .clear-log:hover {
+            color: #764ba2;
+        }
+
+        #sensorLog {
             background: #f8f9fa;
-            border: 2px solid #ffe0f0;
+            border: 2px solid #e9ecef;
             border-radius: 10px;
             padding: 15px;
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
         }
 
         .log-item {
             background: white;
-            padding: 10px;
-            margin-bottom: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
             border-radius: 8px;
-            border-left: 4px solid #ff69b4;
+            border-left: 4px solid #667eea;
             animation: slideIn 0.3s ease;
         }
 
         .log-time {
             color: #999;
             font-size: 11px;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
 
-        .log-text {
+        .log-data {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .log-metric {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .log-metric-icon {
+            font-size: 20px;
+        }
+
+        .log-metric-value {
             color: #333;
-            word-wrap: break-word;
+            font-weight: 600;
         }
 
         .empty-log {
             color: #999;
             text-align: center;
-            padding: 20px;
+            padding: 40px;
             font-style: italic;
         }
 
@@ -247,7 +277,7 @@
             color: white;
             padding: 15px 20px;
             border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             animation: slideInRight 0.3s ease;
             z-index: 1000;
         }
@@ -278,40 +308,74 @@
             }
         }
 
+        .stats-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #667eea;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
         @media (max-width: 768px) {
             .grid {
                 grid-template-columns: 1fr;
             }
 
             h1 {
-                font-size: 24px;
+                font-size: 28px;
             }
 
             .sensor-value {
                 font-size: 36px;
             }
 
-            .control-section, .log-section {
-                padding: 20px;
+            .log-data {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
-            <h1>🌡 ESP32 Weather Dashboard</h1>
+            <h1>👓 Smart Glasses Dashboard</h1>
             <p class="subtitle">
-                Real-time sensor monitoring
+                Real-time environmental monitoring
                 <span class="status-indicator" id="statusIndicator"></span>
             </p>
         </div>
 
-        <!-- Sensor Cards -->
         <div class="grid">
             <div class="sensor-card">
-                <div class="sensor-icon">🌡</div>
+                <div class="sensor-icon">🌡️</div>
                 <div class="sensor-label">Temperature</div>
                 <div class="sensor-value" id="temperatureValue">--</div>
                 <div class="sensor-unit">°C</div>
@@ -327,7 +391,24 @@
             </div>
         </div>
 
-        <!-- Control Section -->
+        <div class="stats-card">
+            <div class="section-title" style="margin-bottom: 15px;">📊 Statistics</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Total Readings</div>
+                    <div class="stat-value" id="totalReadings">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Avg Temperature</div>
+                    <div class="stat-value" id="avgTemp">--</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Avg Humidity</div>
+                    <div class="stat-value" id="avgHumidity">--</div>
+                </div>
+            </div>
+        </div>
+
         <div class="control-section">
             <div class="section-title">📤 Send Message to ESP32</div>
             <div class="input-group">
@@ -342,104 +423,97 @@
             <button id="sendButton">Send Message</button>
         </div>
 
-        <!-- Message Log -->
         <div class="log-section">
             <div class="log-header">
-                <div class="section-title">📋 Message Log (Last 10)</div>
-                <button class="clear-log" id="clearLog">Clear</button>
+                <div class="section-title">📋 Sensor Data Log (Last 50 readings)</div>
+                <button class="clear-log" id="clearLog">Clear Log</button>
             </div>
-            <div id="messageLog">
-                <div class="empty-log">No messages sent yet</div>
+            <div id="sensorLog">
+                <div class="empty-log">No sensor data yet. Waiting for ESP32...</div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Configuration
-        const SEND_MESSAGE_URL = 'https://my-api-url.com/updateMessage';
-        const GET_SENSOR_DATA_URL = 'https://my-api-url.com/getSensorData';
-        const MAX_LOG_ITEMS = 10;
-        const UPDATE_INTERVAL = 3000; // Check for new data every 3 seconds
+    <script type="module">
+        // ===================================
+        // FIREBASE CONFIGURATION
+        // ===================================
+        // INSTRUCTIONS:
+        // 1. Go to https://console.firebase.google.com/
+        // 2. Create a new project (or use existing)
+        // 3. Go to Project Settings > General > Your apps
+        // 4. Click Web icon (</>) and register your app
+        // 5. Copy the firebaseConfig object and paste below
+        
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
 
-        // Get DOM elements
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const messageLog = document.getElementById('messageLog');
-        const clearLogButton = document.getElementById('clearLog');
+        // Import Firebase
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, onValue, set, push } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // DOM elements
         const temperatureValue = document.getElementById('temperatureValue');
         const humidityValue = document.getElementById('humidityValue');
         const tempUpdate = document.getElementById('tempUpdate');
         const humUpdate = document.getElementById('humUpdate');
         const statusIndicator = document.getElementById('statusIndicator');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const sensorLog = document.getElementById('sensorLog');
+        const clearLogButton = document.getElementById('clearLog');
+        const totalReadings = document.getElementById('totalReadings');
+        const avgTemp = document.getElementById('avgTemp');
+        const avgHumidity = document.getElementById('avgHumidity');
 
-        // Load message history
-        let messageHistory = JSON.parse(localStorage.getItem('messageHistory')) || [];
-        
-        // Latest sensor data
-        let latestData = {
-            temperature: null,
-            humidity: null,
-            lastUpdate: null
-        };
+        let sensorHistory = [];
+        const MAX_LOG_ITEMS = 50;
 
-        // Initialize
-        init();
-
-        function init() {
-            displayMessageLog();
-            
-            // Event listeners
-            sendButton.addEventListener('click', sendMessage);
-            clearLogButton.addEventListener('click', clearLog);
-            messageInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendMessage();
-            });
-
-            // Start fetching sensor data
-            fetchSensorData();
-            setInterval(fetchSensorData, UPDATE_INTERVAL);
-        }
-
-        // Fetch sensor data from server
-        async function fetchSensorData() {
-            try {
-                const response = await fetch(GET_SENSOR_DATA_URL);
+        // ===================================
+        // LISTEN TO SENSOR DATA
+        // ===================================
+        const sensorRef = ref(database, 'sensors/current');
+        onValue(sensorRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const temp = parseFloat(data.temperature);
+                const hum = parseFloat(data.humidity);
                 
-                if (response.ok) {
-                    const data = await response.json();
+                if (!isNaN(temp) && !isNaN(hum)) {
+                    temperatureValue.textContent = temp.toFixed(1);
+                    humidityValue.textContent = hum.toFixed(1);
                     
-                    // Update sensor values
-                    if (data.temperature !== undefined) {
-                        temperatureValue.textContent = data.temperature.toFixed(1);
-                        latestData.temperature = data.temperature;
-                    }
-                    
-                    if (data.humidity !== undefined) {
-                        humidityValue.textContent = data.humidity.toFixed(1);
-                        latestData.humidity = data.humidity;
-                    }
-                    
-                    // Update timestamp
                     const now = new Date().toLocaleTimeString();
-                    tempUpdate.textContent = Updated: ${now};
-                    humUpdate.textContent = Updated: ${now};
-                    latestData.lastUpdate = now;
+                    tempUpdate.textContent = `Updated: ${now}`;
+                    humUpdate.textContent = `Updated: ${now}`;
                     
-                    // Update status indicator
                     statusIndicator.classList.add('connected');
-                } else {
-                    statusIndicator.classList.remove('connected');
+                    
+                    // Add to history
+                    addToHistory(temp, hum, new Date());
                 }
-            } catch (error) {
-                console.error('Error fetching sensor data:', error);
-                statusIndicator.classList.remove('connected');
-                tempUpdate.textContent = 'Connection error';
-                humUpdate.textContent = 'Connection error';
             }
-        }
+        }, (error) => {
+            console.error('Firebase error:', error);
+            statusIndicator.classList.remove('connected');
+            showToast('Connection error', 'error');
+        });
 
-        // Send message to ESP32
-        async function sendMessage() {
+        // ===================================
+        // SEND MESSAGE TO ESP32
+        // ===================================
+        sendButton.addEventListener('click', async () => {
             const message = messageInput.value.trim();
             
             if (!message) {
@@ -451,91 +525,111 @@
             sendButton.textContent = 'Sending...';
 
             try {
-                const response = await fetch(SEND_MESSAGE_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        text: message
-                    })
+                const messageRef = ref(database, 'messages/toESP32');
+                await set(messageRef, {
+                    text: message,
+                    timestamp: Date.now()
                 });
 
-                if (response.ok) {
-                    showToast('✓ Message sent successfully!');
-                    addToHistory(message);
-                    messageInput.value = '';
-                } else {
-                    throw new Error(Server error: ${response.status});
-                }
+                showToast('✓ Message sent successfully!');
+                messageInput.value = '';
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error sending message:', error);
                 showToast('✗ Failed to send message', 'error');
             } finally {
                 sendButton.disabled = false;
                 sendButton.textContent = 'Send Message';
             }
-        }
+        });
 
-        // Add message to history
-        function addToHistory(message) {
-            const timestamp = new Date().toLocaleString();
-            
-            messageHistory.unshift({
-                text: message,
-                time: timestamp
-            });
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendButton.click();
+        });
 
-            if (messageHistory.length > MAX_LOG_ITEMS) {
-                messageHistory = messageHistory.slice(0, MAX_LOG_ITEMS);
+        // ===================================
+        // HISTORY MANAGEMENT
+        // ===================================
+        function addToHistory(temperature, humidity, timestamp) {
+            const entry = {
+                temperature,
+                humidity,
+                time: timestamp.toLocaleString()
+            };
+
+            sensorHistory.unshift(entry);
+
+            if (sensorHistory.length > MAX_LOG_ITEMS) {
+                sensorHistory = sensorHistory.slice(0, MAX_LOG_ITEMS);
             }
 
-            localStorage.setItem('messageHistory', JSON.stringify(messageHistory));
-            displayMessageLog();
+            localStorage.setItem('sensorHistory', JSON.stringify(sensorHistory));
+            displaySensorLog();
+            updateStatistics();
         }
 
-        // Display message log
-        function displayMessageLog() {
-            if (messageHistory.length === 0) {
-                messageLog.innerHTML = '<div class="empty-log">No messages sent yet</div>';
+        function displaySensorLog() {
+            if (sensorHistory.length === 0) {
+                sensorLog.innerHTML = '<div class="empty-log">No sensor data yet. Waiting for ESP32...</div>';
                 return;
             }
 
-            messageLog.innerHTML = messageHistory.map(item => `
+            sensorLog.innerHTML = sensorHistory.map(item => `
                 <div class="log-item">
                     <div class="log-time">${item.time}</div>
-                    <div class="log-text">${escapeHtml(item.text)}</div>
+                    <div class="log-data">
+                        <div class="log-metric">
+                            <span class="log-metric-icon">🌡️</span>
+                            <span class="log-metric-value">${item.temperature.toFixed(1)}°C</span>
+                        </div>
+                        <div class="log-metric">
+                            <span class="log-metric-icon">💧</span>
+                            <span class="log-metric-value">${item.humidity.toFixed(1)}%</span>
+                        </div>
+                    </div>
                 </div>
             `).join('');
         }
 
-        // Clear log
-        function clearLog() {
-            if (confirm('Are you sure you want to clear the message log?')) {
-                messageHistory = [];
-                localStorage.removeItem('messageHistory');
-                displayMessageLog();
-                showToast('Log cleared');
+        function updateStatistics() {
+            const count = sensorHistory.length;
+            totalReadings.textContent = count;
+
+            if (count > 0) {
+                const tempSum = sensorHistory.reduce((sum, item) => sum + item.temperature, 0);
+                const humSum = sensorHistory.reduce((sum, item) => sum + item.humidity, 0);
+                
+                avgTemp.textContent = (tempSum / count).toFixed(1) + '°C';
+                avgHumidity.textContent = (humSum / count).toFixed(1) + '%';
             }
         }
 
-        // Show toast notification
+        clearLogButton.addEventListener('click', () => {
+            if (confirm('Clear all sensor data?')) {
+                sensorHistory = [];
+                localStorage.removeItem('sensorHistory');
+                displaySensorLog();
+                updateStatistics();
+                showToast('✓ Log cleared');
+            }
+        });
+
+        // ===================================
+        // UTILITIES
+        // ===================================
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
-            toast.className = toast ${type};
+            toast.className = `toast ${type}`;
             toast.textContent = message;
             document.body.appendChild(toast);
-
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
+            setTimeout(() => toast.remove(), 3000);
         }
 
-        // Escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        // Load saved history
+        const saved = localStorage.getItem('sensorHistory');
+        if (saved) {
+            sensorHistory = JSON.parse(saved);
+            displaySensorLog();
+            updateStatistics();
         }
     </script>
 </body>
