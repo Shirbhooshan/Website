@@ -342,6 +342,22 @@
             font-weight: bold;
         }
 
+        #cameraFeed {
+            max-width: 100%;
+            border-radius: 10px;
+            background: #f0f0f0;
+            min-height: 200px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        #cameraUpdate {
+            color: #999;
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
         @media (max-width: 768px) {
             .grid {
                 grid-template-columns: 1fr;
@@ -410,6 +426,14 @@
         </div>
 
         <div class="control-section">
+            <div class="section-title">📷 Live Camera Feed</div>
+            <div style="text-align: center;">
+                <img id="cameraFeed" src="" alt="Camera feed will appear here">
+                <div id="cameraUpdate">Waiting for camera...</div>
+            </div>
+        </div>
+
+        <div class="control-section">
             <div class="section-title">📤 Send Message to ESP32</div>
             <div class="input-group">
                 <label for="messageInput">Message</label>
@@ -436,29 +460,22 @@
 
     <script type="module">
         // ===================================
-        // FIREBASE CONFIGURATION
+        // FIREBASE CONFIGURATION - YOUR PROJECT
         // ===================================
-        // INSTRUCTIONS:
-        // 1. Go to https://console.firebase.google.com/
-        // 2. Create a new project (or use existing)
-        // 3. Go to Project Settings > General > Your apps
-        // 4. Click Web icon (</>) and register your app
-        // 5. Copy the firebaseConfig object and paste below
-        
         const firebaseConfig = {
-        apiKey: "AIzaSyD9qxxWPMbt9hFUOfHsW6KXBOj88ig3psE",
-        authDomain: "smart-glasses-ff6d1.firebaseapp.com",
-        databaseURL: "https://smart-glasses-ff6d1-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "smart-glasses-ff6d1",
-        storageBucket: "smart-glasses-ff6d1.firebasestorage.app",
-        messagingSenderId: "461571246400",
-        appId: "1:461571246400:web:fe3eeba3ad4883bb41d2a5",
-        measurementId: "G-EVNL2R7FSX"
+            apiKey: "AIzaSyD9qxxWPMbt9hFUOfHsW6KXBOj88ig3psE",
+            authDomain: "smart-glasses-ff6d1.firebaseapp.com",
+            databaseURL: "https://smart-glasses-ff6d1-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "smart-glasses-ff6d1",
+            storageBucket: "smart-glasses-ff6d1.firebasestorage.app",
+            messagingSenderId: "461571246400",
+            appId: "1:461571246400:web:fe3eeba3ad4883bb41d2a5",
+            measurementId: "G-EVNL2R7FSX"
         };
 
         // Import Firebase
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, onValue, set, push } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getDatabase, ref, onValue, set } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -477,6 +494,8 @@
         const totalReadings = document.getElementById('totalReadings');
         const avgTemp = document.getElementById('avgTemp');
         const avgHumidity = document.getElementById('avgHumidity');
+        const cameraFeed = document.getElementById('cameraFeed');
+        const cameraUpdate = document.getElementById('cameraUpdate');
 
         let sensorHistory = [];
         const MAX_LOG_ITEMS = 50;
@@ -501,7 +520,6 @@
                     
                     statusIndicator.classList.add('connected');
                     
-                    // Add to history
                     addToHistory(temp, hum, new Date());
                 }
             }
@@ -509,6 +527,22 @@
             console.error('Firebase error:', error);
             statusIndicator.classList.remove('connected');
             showToast('Connection error', 'error');
+        });
+
+        // ===================================
+        // LISTEN TO CAMERA FEED
+        // ===================================
+        const cameraRef = ref(database, 'camera/image');
+        onValue(cameraRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.image) {
+                cameraFeed.src = 'data:image/jpeg;base64,' + data.image;
+                const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'Just now';
+                cameraUpdate.textContent = `Last updated: ${timestamp}`;
+            }
+        }, (error) => {
+            console.error('Camera error:', error);
+            cameraUpdate.textContent = 'Camera unavailable';
         });
 
         // ===================================
@@ -535,7 +569,7 @@
                 showToast('✓ Message sent successfully!');
                 messageInput.value = '';
             } catch (error) {
-                console.error('Error sending message:', error);
+                console.error('Error:', error);
                 showToast('✗ Failed to send message', 'error');
             } finally {
                 sendButton.disabled = false;
