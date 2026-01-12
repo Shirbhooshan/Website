@@ -380,6 +380,122 @@
             background: #00ff88;
         }
 
+        .qr-entry {
+            margin-bottom: 10px;
+            padding: 15px;
+            background: rgba(157, 0, 255, 0.1);
+            border-left: 3px solid #9d00ff;
+            border-radius: 5px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .qr-link {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 8px 15px;
+            background: linear-gradient(135deg, #00d4ff, #9d00ff);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .qr-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .qr-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .qr-badge.url {
+            background: #00d4ff;
+        }
+
+        .qr-badge.text {
+            background: #9d00ff;
+        }
+
+        .camera-container {
+            position: relative;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(0, 212, 255, 0.2);
+        }
+
+        .camera-stream {
+            width: 100%;
+            height: auto;
+            display: none;
+            border-radius: 10px;
+        }
+
+        .camera-placeholder {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 40px;
+        }
+
+        .camera-placeholder-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+            animation: pulse-icon 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-icon {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        .camera-status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding: 10px 0;
+            border-top: 1px solid rgba(0, 212, 255, 0.2);
+        }
+
+        .camera-status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .camera-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: blink 2s infinite;
+        }
+
+        .camera-status-dot.live {
+            background: #00ff88;
+            animation: none;
+        }
+
+        .fps-counter {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+            font-family: 'Courier New', monospace;
+        }
+
         .connection-status {
             position: fixed;
             top: 20px;
@@ -485,7 +601,7 @@
         <div class="glass-container">
             <div class="glow-ring"></div>
             <div class="glow-ring-2"></div>
-            <img src="/images/glass.png" alt="Smart Glass" class="hero-glass-img">
+            <img src="glass.png" alt="Smart Glass" class="hero-glass-img">
         </div>
         
         <!-- Right Features -->
@@ -521,6 +637,31 @@
             <h2>💧 Humidity</h2>
             <div class="sensor-value" id="hum">-- %</div>
             <div class="sensor-timestamp" id="humTime">Waiting for data...</div>
+        </div>
+    </div>
+
+    <!-- Camera Feed Card -->
+    <div class="card full-width-card">
+        <h2>📷 Live Camera Feed</h2>
+        <div class="camera-container">
+            <img 
+                id="cameraStream" 
+                class="camera-stream"
+                alt="ESP32 Camera Feed"
+            />
+            <div id="cameraPlaceholder" class="camera-placeholder">
+                <div class="camera-placeholder-icon">📷</div>
+                <p id="cameraStatusText">Waiting for camera feed...</p>
+                <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">ESP32-CAM will upload frames to Firebase</p>
+            </div>
+        </div>
+        <div class="camera-status-bar">
+            <div class="camera-status-indicator">
+                <div class="camera-status-dot" id="camStatusDot"></div>
+                <span id="camStatusLabel">Offline</span>
+            </div>
+            <div class="fps-counter" id="fpsCounter">FPS: 0.0</div>
+            <div class="fps-counter" id="lastFrameTime">Last frame: Never</div>
         </div>
     </div>
 
@@ -751,6 +892,224 @@
             alert('Failed to send message: ' + error.message);
         }
     }
+
+    // Listen for QR code detections from Python script
+    const qrDetectionsRef = ref(database, 'smartglasses/qr_detections');
+    onValue(qrDetectionsRef, (snapshot) => {
+        const qrLog = document.getElementById('qrLog');
+        const detections = snapshot.val();
+        
+        if (detections && Object.keys(detections).length > 0) {
+            console.log("Received QR detections:", detections);
+            
+            // Convert to array and sort by timestamp (newest first)
+            const qrArray = Object.entries(detections).map(([key, qr]) => ({
+                key,
+                ...qr
+            }));
+            
+            // Sort by timestamp or key
+            qrArray.sort((a, b) => {
+                // Try to sort by timestamp if available
+                if (a.timestamp && b.timestamp) {
+                    return new Date(b.timestamp) - new Date(a.timestamp);
+                }
+                return b.key.localeCompare(a.key);
+            });
+            
+            qrLog.innerHTML = '';
+            
+            qrArray.forEach((qr) => {
+                const div = document.createElement('div');
+                div.className = 'qr-entry';
+                
+                // Create badge
+                const badge = document.createElement('span');
+                badge.className = `qr-badge ${qr.is_url ? 'url' : 'text'}`;
+                badge.textContent = qr.is_url ? '🌐 URL' : '📝 TEXT';
+                
+                // Create status
+                const status = document.createElement('span');
+                status.style.fontSize = '0.8rem';
+                status.style.opacity = '0.7';
+                status.style.marginLeft = '10px';
+                status.textContent = qr.status === 'opened' ? '✓ Opened' : '● Detected';
+                
+                // Create data display
+                const data = document.createElement('div');
+                data.style.marginTop = '10px';
+                data.style.fontSize = '1rem';
+                data.style.wordBreak = 'break-all';
+                
+                if (qr.is_url) {
+                    // If it's a URL, make it clickable
+                    const link = document.createElement('a');
+                    link.href = qr.data;
+                    link.className = 'qr-link';
+                    link.target = '_blank';
+                    link.textContent = qr.data;
+                    data.appendChild(link);
+                } else {
+                    data.textContent = qr.data;
+                }
+                
+                // Create timestamp
+                const timestamp = document.createElement('div');
+                timestamp.style.fontSize = '0.8rem';
+                timestamp.style.opacity = '0.6';
+                timestamp.style.marginTop = '8px';
+                timestamp.textContent = qr.timestamp || 'No timestamp';
+                
+                div.appendChild(badge);
+                div.appendChild(status);
+                div.appendChild(data);
+                div.appendChild(timestamp);
+                qrLog.appendChild(div);
+            });
+            
+        } else {
+            qrLog.innerHTML = '<p style="opacity:0.6;">No QR codes detected yet...</p>';
+        }
+    }, (error) => {
+        console.error("Error reading QR detections:", error);
+    });
+
+    // Listen for QR code detections from Python script
+    const qrDetectionsRef = ref(database, 'smartglasses/qr_detections');
+    onValue(qrDetectionsRef, (snapshot) => {
+        const qrLog = document.getElementById('qrLog');
+        const detections = snapshot.val();
+        
+        if (detections && Object.keys(detections).length > 0) {
+            console.log("Received QR detections:", detections);
+            
+            // Convert to array and sort by timestamp (newest first)
+            const qrArray = Object.entries(detections).map(([key, qr]) => ({
+                key,
+                ...qr
+            }));
+            
+            // Sort by timestamp or key
+            qrArray.sort((a, b) => {
+                if (a.timestamp && b.timestamp) {
+                    return new Date(b.timestamp) - new Date(a.timestamp);
+                }
+                return b.key.localeCompare(a.key);
+            });
+            
+            qrLog.innerHTML = '';
+            
+            qrArray.forEach((qr) => {
+                const div = document.createElement('div');
+                div.className = 'qr-entry';
+                
+                // Create badge
+                const badge = document.createElement('span');
+                badge.className = `qr-badge ${qr.is_url ? 'url' : 'text'}`;
+                badge.textContent = qr.is_url ? '🌐 URL' : '📝 TEXT';
+                
+                // Create status
+                const status = document.createElement('span');
+                status.style.fontSize = '0.8rem';
+                status.style.opacity = '0.7';
+                status.style.marginLeft = '10px';
+                status.textContent = qr.status === 'opened' ? '✓ Opened' : '● Detected';
+                
+                // Create data display
+                const data = document.createElement('div');
+                data.style.marginTop = '10px';
+                data.style.fontSize = '1rem';
+                data.style.wordBreak = 'break-all';
+                
+                if (qr.is_url) {
+                    // If it's a URL, make it clickable
+                    const link = document.createElement('a');
+                    link.href = qr.data;
+                    link.className = 'qr-link';
+                    link.target = '_blank';
+                    link.textContent = qr.data;
+                    data.appendChild(link);
+                } else {
+                    data.textContent = qr.data;
+                }
+                
+                // Create timestamp
+                const timestamp = document.createElement('div');
+                timestamp.style.fontSize = '0.8rem';
+                timestamp.style.opacity = '0.6';
+                timestamp.style.marginTop = '8px';
+                timestamp.textContent = qr.timestamp || 'No timestamp';
+                
+                div.appendChild(badge);
+                div.appendChild(status);
+                div.appendChild(data);
+                div.appendChild(timestamp);
+                qrLog.appendChild(div);
+            });
+            
+        } else {
+            qrLog.innerHTML = '<p style="opacity:0.6;">No QR codes detected yet...</p><p style="opacity:0.5; font-size: 0.9rem; margin-top: 10px;">Run the Python QR scanner to detect codes</p>';
+        }
+    }, (error) => {
+        console.error("Error reading QR detections:", error);
+    });
+
+    // Camera feed handling
+    let lastFrameTimestamp = null;
+    let frameCount = 0;
+    let lastFpsUpdate = Date.now();
+    let currentFps = 0;
+
+    const cameraRef = ref(database, 'smartglasses/camera');
+    onValue(cameraRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.frame) {
+            console.log("Received camera frame");
+            
+            const cameraImg = document.getElementById('cameraStream');
+            const placeholder = document.getElementById('cameraPlaceholder');
+            const statusDot = document.getElementById('camStatusDot');
+            const statusLabel = document.getElementById('camStatusLabel');
+            const lastFrameTimeEl = document.getElementById('lastFrameTime');
+            
+            // Update image
+            cameraImg.src = 'data:image/jpeg;base64,' + data.frame;
+            cameraImg.style.display = 'block';
+            placeholder.style.display = 'none';
+            
+            // Update status
+            statusDot.classList.add('live');
+            statusLabel.textContent = 'Live';
+            
+            // Update timestamp
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            lastFrameTimeEl.textContent = 'Last frame: ' + timeStr;
+            lastFrameTimestamp = Date.now();
+            
+            // Calculate FPS
+            frameCount++;
+            const elapsed = (Date.now() - lastFpsUpdate) / 1000;
+            if (elapsed >= 1.0) {
+                currentFps = frameCount / elapsed;
+                document.getElementById('fpsCounter').textContent = 'FPS: ' + currentFps.toFixed(1);
+                frameCount = 0;
+                lastFpsUpdate = Date.now();
+            }
+        }
+    }, (error) => {
+        console.error("Error reading camera feed:", error);
+        document.getElementById('cameraStatusText').textContent = 'Error loading camera feed';
+    });
+
+    // Monitor camera freshness (mark offline if no frames for 10 seconds)
+    setInterval(() => {
+        if (lastFrameTimestamp && (Date.now() - lastFrameTimestamp > 10000)) {
+            document.getElementById('camStatusDot').classList.remove('live');
+            document.getElementById('camStatusLabel').textContent = 'Offline';
+            document.getElementById('fpsCounter').textContent = 'FPS: 0.0';
+        }
+    }, 5000);
 
     // Allow Enter key to send message
     document.getElementById('msg').addEventListener('keypress', (e) => {
